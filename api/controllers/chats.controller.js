@@ -819,7 +819,12 @@ const reformText = (message, data)=>{
   const {contact, chatLog} = data;
   console.log(contact, chatLog)
   
-  const mergedContact = {...contact.toObject()};
+  let mergedContact = {};
+  
+  if(contact){
+    mergedContact = {...contact?.toObject()};
+  }
+
   if(chatLog?.otherMessages){
     Object.entries(chatLog?.otherMessages).forEach(([key, value]) => {
       if (typeof value === 'object' && value !== null) {
