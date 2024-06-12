@@ -480,7 +480,7 @@ const recieveMessages = async (req, res)=>{
       message = messageObject.data.data.messages?.[0]?.message?.extendedTextMessage?.text || messageObject.data.data.messages?.[0]?.message?.conversation || '';
       let remoteId = messageObject.data.data.messages?.[0]?.key.remoteJid.split('@')[0];
 
-      let file = messageObject.data.data.messages[0].message.imageMessage || messageObject.data.data.messages[0].message.documentMessage || messageObject.data.data.messages[0].message.audioMessage
+      let file = messageObject.data.data.messages[0].message?.imageMessage || messageObject.data.data.messages[0].message?.documentMessage || messageObject.data.data.messages[0].message?.audioMessage
 
       if(file){
         const uploadsDir = path.join(__dirname, 'uploads');
@@ -490,13 +490,13 @@ const recieveMessages = async (req, res)=>{
         const mediaUrl = file.jpegThumbnail;
         const mimetype = file.mimetype;
 
-        await downloadAndSaveMedia(mediaUrl, mimetype, uploadsDir)
-        .then((savedPath) => {
-          console.log('Media downloaded and saved successfully:', savedPath);
-        })
-        .catch((error) => {
-          console.error('Error downloading and saving media:', error);
-        });
+        // await downloadAndSaveMedia(mediaUrl, mimetype, uploadsDir)
+        // .then((savedPath) => {
+        //   console.log('Media downloaded and saved successfully:', savedPath);
+        // })
+        // .catch((error) => {
+        //   console.error('Error downloading and saving media:', error);
+        // });
       }
 
       let start = new Date();
@@ -828,7 +828,7 @@ const reformText = (message, data)=>{
   if(chatLog?.otherMessages){
     Object.entries(chatLog?.otherMessages).forEach(([key, value]) => {
       if (typeof value === 'object' && value !== null) {
-        if (value.name !== undefined) {
+        if (value?.name !== undefined) {
           mergedContact[key] = value.name;
         } else if (value.value !== undefined) {
           mergedContact[key] = value.value;
