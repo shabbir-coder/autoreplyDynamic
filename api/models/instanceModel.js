@@ -5,6 +5,7 @@ const instanceSchema = new mongoose.Schema({
   access_token: String,
   instance_id: String,
   lastScannedAt: Date,
+  webhookUrl: String,
   number: Number,
   campaignId: {type: mongoose.Types.ObjectId},
   createdBy: { type: mongoose.Types.ObjectId },

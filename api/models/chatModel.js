@@ -4,6 +4,9 @@ const contactSchema = new mongoose.Schema({
   name: { type: String, required: true },
   code: { type: String, required: true },
   number: { type: String, required: true },
+  param1 : {type: String, required: false, default: '' },
+  param2 : {type: String, required: false, default: '' },
+  param3 : {type: String, required: false, default: '' },
   isVerified : {type: Boolean, default: false},
   lastResponse: {type: String, default:''},
   lastResponseUpdatedAt: {type: Date},
@@ -29,7 +32,8 @@ const chatLogs = new mongoose.Schema({
 
 const chatSchema = new mongoose.Schema({
   campaignId: {type: mongoose.Schema.Types.ObjectId},
-  senderNumber: [{ type: String }],
+  senderNumber: { type: String },
+  fromMe: {type: Boolean},
   recieverId: { type: mongoose.Schema.Types.ObjectId},
   instanceId: {type: String},
   text: { type: String},

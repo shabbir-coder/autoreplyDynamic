@@ -15,7 +15,7 @@ exports.createQr = async (req, res) => {
     })
 
     const instanceId = createInstanceResponse.data.instance_id;
-    
+    console.log(createInstanceResponse);
     if (!instanceId) {
       throw new Error('Instance ID not found in the create instance response');
     }
@@ -29,6 +29,7 @@ exports.createQr = async (req, res) => {
     })
 
     } catch (error) {
+      console.log(error)
       res.status(500).json({ error: 'Internal Server Error' });
     }
   };
@@ -56,7 +57,7 @@ exports.createInstance = async (req, res)=>{
     const url = process.env.LOGIN_CB_API;
     const instance_id = req.body.instance_id;
     let enable = true;
-    let webhook_url = process.env.WEBHOOK_API;
+    let webhook_url = req.body.webhookUrl;
     const access_token = process.env.ACCESS_TOKEN_CB
     const result = await axios.get(`${url}/set_webhook`, {params:{
       webhook_url, enable, instance_id, access_token
@@ -73,6 +74,7 @@ exports.createInstance = async (req, res)=>{
     const instance = new Instance(req.body);
     await instance.save();
     return res.status(201).send(instance);
+    
   } catch (error) {
     console.log(error)
     return res.status(500).json({error: 'Internal Server Error'});
@@ -127,7 +129,7 @@ exports.updateInstance = async (req, res)=>{
 
     const url = process.env.LOGIN_CB_API;
     let enable = true;
-    let webhook_url = process.env.WEBHOOK_API;
+    let webhook_url = req.body.webhookUrl;
     const access_token = process.env.ACCESS_TOKEN_CB
     const result = await axios.get(`${url}/set_webhook`, {params:{
       webhook_url, enable, instance_id: instanceId, access_token

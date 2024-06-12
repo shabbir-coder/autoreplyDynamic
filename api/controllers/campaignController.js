@@ -1,4 +1,8 @@
 const Campaign = require('../models/campaignModel');
+const Instance = require('../models/instanceModel')
+const {Message, Contact, ChatLogs} = require('../models/chatModel');
+const fs = require('fs')
+
 
 function generateUniqueCode(length = 5) {
     const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -49,22 +53,6 @@ exports.saveOrUpdateCampaign = async (req, res) => {
     }
   };
   
-  // Delete Campaign
-  exports.deleteCampaign = async (req, res) => {
-    try {
-      const { id } = req.params;
-      const result = await Campaign.findByIdAndDelete(id);
-  
-      if (!result) {
-        return res.status(404).json({ message: 'Campaign not found' });
-      }
-  
-      res.status(200).json({ message: 'Campaign deleted successfully' });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  };
-  
   // List All Campaigns
   exports.listAllCampaigns = async (req, res) => {
     try {
@@ -77,3 +65,73 @@ exports.saveOrUpdateCampaign = async (req, res) => {
       res.status(500).json({ error: error.message });
     }
   };
+
+
+  // Delete Campaign
+  exports.deleteCampaignData = async (req, res) => {
+    try {
+      const { campaignId } = req.params;
+       // Delete instances related to the campaign
+    await Instance.deleteMany({ campaignId });
+
+    // Delete contacts related to the campaign
+    await Contact.deleteMany({ campaignId });
+
+    // Delete chatsLogs related to the campaign
+    await ChatLogs.deleteMany({ campaignId });
+
+    // Delete messages related to the campaign
+    await Message.deleteMany({ campaignId });
+
+    const result = await Campaign.findByIdAndDelete(id);
+  
+      if (!result) {
+        return res.status(404).json({ message: 'Campaign not found' });
+      }
+  
+      res.status(200).json({ message: 'Campaign deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+
+  exports.deleteChatsData = async (req, res) => {
+    try {
+      const campaignId = req.params.campaignId;
+  
+      // Delete chats related to the campaign
+      await ChatLogs.deleteMany({ campaignId });
+
+      // Delete messages related to the campaign
+      await Message.deleteMany({ campaignId });
+  
+  
+      res.status(200).json({ message: 'Chats for the campaign deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Error deleting chats', error });
+    }
+  }
+
+  exports.deleteContactsData = async (req, res) => {
+    try {
+      const campaignId = req.params.campaignId;
+  
+      // Find the contact to get the campaignId
+      const result = await Contact.deleteMany({ campaignId });
+      
+      if (!result) {
+        return res.status(404).json({ message: 'Contacts not found' });
+      }
+
+      // Delete chatsLogs related to the campaign
+      await ChatLogs.deleteMany({ campaignId });
+  
+      // Delete messages related to the campaign
+      await Message.deleteMany({ campaignId });
+  
+  
+      res.status(200).json({ message: 'Contact and related chats deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ message: 'Error deleting contact', error });
+    }
+  }

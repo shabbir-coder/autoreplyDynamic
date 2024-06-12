@@ -14,7 +14,7 @@ const csv = require('csvtojson');
 const dataKey = 'activeSet';
 const xlsx = require('xlsx');
 const pdf = require('html-pdf');
-
+const path = require('path');
 
 const saveContact = async(req, res)=>{
     try {
@@ -122,16 +122,20 @@ const updateContacts = async(req, res)=>{
 
 const getMessages = async (req, res)=>{
     try {
-        const { recieverId, instance_id} = req.body;
+        const {senderNumber, instanceId} = req.body;
+        
+        const instance = await Instance.findOne({_id:instanceId})
+
         const senderId = req.user.userId;
+        
+        console.log(senderNumber, instance?.instance_id)
+        console.log(senderId)
+
         const messages = await Message.find({ 
-          $or: [
-            { recieverId, senderId}, // Both ids are the same
-            { recieverId: senderId, senderId: recieverId },
-            { senderId: recieverId, instance_id },
-            { recieverId, instance_id } // Ids are reversed
-          ]
+          senderNumber: ''+ senderNumber,
+          instanceId: instance.instance_id     
          }).sort({ createdAt: 1 });
+
         res.status(200).send(messages);
       } catch (error) {
         // console.log(error)
@@ -476,6 +480,25 @@ const recieveMessages = async (req, res)=>{
       message = messageObject.data.data.messages?.[0]?.message?.extendedTextMessage?.text || messageObject.data.data.messages?.[0]?.message?.conversation || '';
       let remoteId = messageObject.data.data.messages?.[0]?.key.remoteJid.split('@')[0];
 
+      let file = messageObject.data.data.messages[0].message.imageMessage || messageObject.data.data.messages[0].message.documentMessage || messageObject.data.data.messages[0].message.audioMessage
+
+      if(file){
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir);
+        }
+        const mediaUrl = file.jpegThumbnail;
+        const mimetype = file.mimetype;
+
+        await downloadAndSaveMedia(mediaUrl, mimetype, uploadsDir)
+        .then((savedPath) => {
+          console.log('Media downloaded and saved successfully:', savedPath);
+        })
+        .catch((error) => {
+          console.error('Error downloading and saving media:', error);
+        });
+      }
+
       let start = new Date();
       start.setHours(0,0,0,0);
 
@@ -489,6 +512,7 @@ const recieveMessages = async (req, res)=>{
         recieverId : recieverId?._id,
         senderNumber: remoteId,
         instanceId: messageObject?.instance_id,
+        fromMe: false,
         text: message,
         type: 'text'
       }
@@ -529,8 +553,16 @@ const recieveMessages = async (req, res)=>{
             reply = campaign.numberVerificationPasses;
 
             const currentTime = moment();
-            const startingTime = moment(campaign?.startDate);
-            const endingTime = moment(campaign?.endDate);
+            // const startingTime = moment(campaign?.startDate);
+            // const endingTime = moment(campaign?.endDate);
+            const startingTime = moment(campaign.startDate)
+            .set('hour', campaign.startHour)
+            .set('minute', campaign.startMinute);
+      
+          const endingTime = moment(campaign.endDate)
+            .set('hour', campaign.endHour)
+            .set('minute', campaign.endMinute);
+
             if (!currentTime.isBetween(startingTime, endingTime)) {
               const response =  await sendMessageFunc({...sendMessageObj,message: "Registrations are closed now" });
               return res.send(true);      
@@ -564,9 +596,18 @@ const recieveMessages = async (req, res)=>{
       const activeCampaign = await Campaign.findOne({_id: previousChatLog.campaignId})
       console.log({activeCampaign})
       const currentTime = moment();
-      const startingTime = moment(activeCampaign?.startDate);
-      const endingTime = moment(activeCampaign?.endDate);
-      console.log({currentTime,startingTime, endingTime})
+      // const startingTime = moment(activeCampaign?.startDate);
+      // const endingTime = moment(activeCampaign?.endDate);
+
+      const startingTime = moment(activeCampaign.startDate)
+      .set('hour', activeCampaign.startHour)
+      .set('minute', activeCampaign.startMinute);
+
+    const endingTime = moment(activeCampaign.endDate)
+      .set('hour', activeCampaign.endHour)
+      .set('minute', activeCampaign.endMinute);
+
+      console.log({currentTime, startingTime, endingTime})
       if (!currentTime.isBetween(startingTime, endingTime)) {
         const response =  await sendMessageFunc({...sendMessageObj,message: "Registrations are closed now 2" });
         return res.send(true);      
@@ -603,6 +644,7 @@ const recieveMessages = async (req, res)=>{
       console.log('previousChatLog', previousChatLog)
 // || (previousChatLog?.senderCode && previousChatLog?.senderCode != message)
       if(previousChatLog.messageTrack === 1 && activeCampaign?.verifyUserCode){
+        console.log('I am here============')
         const { codeType, codeLength } = activeCampaign;
         let pattern;
         resValue += ' 1'
@@ -625,8 +667,8 @@ const recieveMessages = async (req, res)=>{
           return res.send('not matched with pattern')
         }else{
           resValue += ' 2'
-          const matchedContact = await Contact.findOne({code: message})
-          console.log(matchedContact)
+          const matchedContact = await Contact.findOne({code: message, number: remoteId})
+          console.log('matchedContact', matchedContact)
           if(!matchedContact){
             reply = activeCampaign.numberVerificationFails;
             const response = await sendMessageFunc({...sendMessageObj,message: reply });
@@ -739,16 +781,64 @@ const recieveMessages = async (req, res)=>{
   }
 }
 
-const sendMessageFunc = async (message)=>{
+const sendMessageFunc = async (message, data={})=>{
   console.log(message)
+  const chatLog = await ChatLogs.findOne({
+    senderNumber: message.number,
+    instanceId: message.instance_id
+  }).sort({ updatedAt: -1 })
+  
+  const query = {
+    number: message.number
+  };
+
+  // Add senderCode to the query if available
+  if (chatLog && chatLog.senderCode) {
+    query.code = chatLog.senderCode;
+  }
+  const contact = await Contact.findOne(query);
+
+  message.message = reformText(message?.message, {chatLog, contact})
   const url = process.env.LOGIN_CB_API
   const access_token = process.env.ACCESS_TOKEN_CB
+  const newMessage = {
+    ...message,
+    senderNumber: message?.number,
+    instanceId: message?.instance_id,
+    fromMe: true,
+    text: message?.message,
+  }
+  const savedMessage = new Message(newMessage);
+  await savedMessage.save();
   const response = await axios.get(`${url}/send`,{params:{...message,access_token}})
   return true;
 }
 
 const reformText = (message, data)=>{
+  console.log(data)
+  const {contact, chatLog} = data;
+  console.log(contact, chatLog)
+  
+  const mergedContact = {...contact.toObject()};
+  if(chatLog?.otherMessages){
+    Object.entries(chatLog?.otherMessages).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        if (value.name !== undefined) {
+          mergedContact[key] = value.name;
+        } else if (value.value !== undefined) {
+          mergedContact[key] = value.value;
+        }
+      }
+    });
+  }
   console.log(message)
+  console.log(mergedContact)
+  function replacePlaceholders(message, data) {
+    return message.replace(/{(\w+)}/g, (_, key) => data[key] || `{${key}}`);
+  }
+  
+  return replacePlaceholders(message, mergedContact);
+  
 }
 
 function processUserMessage(message, setConfig) {
@@ -768,9 +858,6 @@ function processUserMessage(message, setConfig) {
   return null; // Return default message if no matching keyword is found
 }
 
-function getSequenceMessage(sequences, index) {
-
-}
 
 function getNames(step, number){
   const venueNames = ['Saifee Masjid','Burhani Masjid','MM Warqa']
@@ -1291,6 +1378,38 @@ async function getStats1(instanceId, startDate, endDate) {
     throw error; // Ensure errors are thrown to be handled by the calling function
   }
 }
+
+const getExtensionFromMimeType = (mimetype) => {
+  const mimeTypes = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'audio/mp4': 'mp4',
+    'application/pdf': 'pdf',
+    // Add more MIME type mappings as needed
+  };
+  return mimeTypes[mimetype] || 'dat'; // Default to 'dat' if MIME type is unknown
+};
+
+const downloadAndSaveMedia = async (jpegThumbnail, mimetype, outputDir) => {
+  try {
+
+    // Determine the file extension based on the MIME type
+    const fileExtension = mimetype.split('/').pop();
+    const filename = `${Date.now()}.${fileExtension}`;
+    const outputPath = path.join(outputDir, filename);
+    let base64Data = jpegThumbnail.replace(/^data:image\/\w+;base64,/, '');
+    // Create a write stream
+
+    base64Data = `data:image/jpeg;base64,${base64Data}`
+
+    fs.writeFileSync(outputPath, base64Data);
+
+    // Pipe the response data to the file
+    return outputPath
+  } catch (error) {
+    throw new Error(`Failed to download media: ${error.message}`);
+  }
+};
 
 module.exports = {
   saveContact,
