@@ -30,7 +30,6 @@ const saveContact = async(req, res)=>{
           let errorMessage = 'Contact already exists with the same ';
           const errors = [];
           if (existingContact.name === name) errors.push('name');
-          if (existingContact.code === cpde) errors.push('code');
           if (existingContact.number === number) errors.push('number');
 
           errorMessage += errors.join(' or ') + '.';
@@ -41,7 +40,7 @@ const saveContact = async(req, res)=>{
         await contact.save();
         return res.status(201).send(contact);
       } catch (error) {
-        // console.log(error)
+        // // console.log(error)
         return res.status(500).send({ error: error.message });
       }
 }
@@ -72,7 +71,7 @@ const saveContactsInBulk = async(req, res) => {
 
     res.status(201).json({ message: 'Contacts saved successfully' });
   } catch (error) {
-    console.log(error)
+    // console.log(error)
     res.status(500).json({ error: 'An error occurred while saving contacts' });
   }
 }
@@ -92,7 +91,7 @@ const getContact = async(req, res)=>{
           { number: { $regex: new RegExp(searchtext, 'i') } }
         ];
       }
-      // console.log('query', query)
+      // // console.log('query', query)
       const Contacts = await Contact.find(query)
         .skip((page - 1) * limit)
         .limit(limit);
@@ -101,7 +100,7 @@ const getContact = async(req, res)=>{
       return res.status(200).json({data: Contacts, total: count});
 
       } catch (error) {
-        // console.log(error)
+        // // console.log(error)
         return res.status(500).send({ error: error.message });
       }
 }
@@ -115,7 +114,7 @@ const updateContacts = async(req, res)=>{
         }
         res.status(200).send(contact);
       } catch (error) {
-        // console.log(error)
+        // // console.log(error)
         return res.status(500).send({ error: error.message });
       }
 }
@@ -128,8 +127,8 @@ const getMessages = async (req, res)=>{
 
         const senderId = req.user.userId;
         
-        console.log(senderNumber, instance?.instance_id)
-        console.log(senderId)
+        // console.log(senderNumber, instance?.instance_id)
+        // console.log(senderId)
 
         const messages = await Message.find({ 
           senderNumber: ''+ senderNumber,
@@ -138,7 +137,7 @@ const getMessages = async (req, res)=>{
 
         res.status(200).send(messages);
       } catch (error) {
-        // console.log(error)
+        // // console.log(error)
         return res.status(500).send({ error: error.message });
       }
 }
@@ -164,7 +163,7 @@ const sendMessages = async (req, res)=>{
 
     const response = await axios.get(`${url}/send`,{params:{...params, instance_id, access_token}})
 
-    // console.log('response', response.data)
+    // // console.log('response', response.data)
     
     // Emit the message to all clients in the conversation room
     io.emit(instance_id.toString() , newMessage);
@@ -185,7 +184,7 @@ const recieveMessages1 = async (req, res)=>{
     const khidmatNames = ['For all Majlis and Miqaat','Only During Ramadan','Only During Ashara','Only During Ramadan and Ashara']
     if(messageObject.data?.data?.messages?.[0]?.key?.fromMe === true) return res.send()
     if(["messages.upsert"].includes(req.body?.data?.event)){
-      // console.log(messageObject.data.data.messages?.[0]?.message)
+      // // console.log(messageObject.data.data.messages?.[0]?.message)
       let message;
       const currentTime = moment();
       const startingTime = moment(activeSet?.StartingTime);
@@ -193,9 +192,8 @@ const recieveMessages1 = async (req, res)=>{
 
       message = messageObject.data.data.messages?.[0]?.message?.extendedTextMessage?.text || messageObject.data.data.messages?.[0]?.message?.conversation || '';
       let remoteId = messageObject.data.data.messages?.[0]?.key.remoteJid.split('@')[0];
-      const senderId = await Contact.findOne({number: remoteId})
-      
       const recieverId = await Instance.findOne({instance_id: messageObject.instance_id})
+      const senderId = await Contact.findOne({number: remoteId, campaignId: recieverId.campaignId})
       const newMessage = {
         recieverId : recieverId?._id,
         senderId: senderId?._id,
@@ -298,9 +296,9 @@ const recieveMessages1 = async (req, res)=>{
         if(ITSmatched){
            
             const izanDate = new Date(ITSmatched.lastIzantaken)
-            console.log(izanDate >= start && izanDate <= end,{izanDate}, {start} , {end})
+            // console.log(izanDate >= start && izanDate <= end,{izanDate}, {start} , {end})
             if( izanDate >= start && izanDate <= end){
-              console.log('saving from here')
+              // console.log('saving from here')
               const response = await sendMessageFunc({...sendMessageObj,message:'Already registered. Type Change to edit the selected choice.' });
               return res.send(true)
             }
@@ -403,7 +401,7 @@ const recieveMessages1 = async (req, res)=>{
         }
         
         let reply = processUserMessage(message, activeSet);
-        console.log({latestChatLog})
+        // console.log({latestChatLog})
         if(latestChatLog?.requestedITS && latestChatLog.messageTrack === 'profile'){
           reply = {message : activeSet?.AcceptanceMessage}
           reply.message = reply.message
@@ -417,14 +415,14 @@ const recieveMessages1 = async (req, res)=>{
             ITSmatched.lastIzantaken = new Date();
             ITSmatched.save()
           }
-          // console.log('reply', reply)
+          // // console.log('reply', reply)
           const response = await sendMessageFunc({...sendMessageObj,message:reply?.message });
 
           // const messages = Object.values(latestChatLog?.otherMessages || {});
           // const isMessagePresent = messages.includes(message.toLowerCase());
           // if (isMessagePresent) {
           //     // If the message is already present, do not update and return
-          //     console.log('i am stuck')
+          //     // console.log('i am stuck')
           //     return latestChatLog;
           // }
 
@@ -492,7 +490,7 @@ const recieveMessages = async (req, res)=>{
 
         // await downloadAndSaveMedia(mediaUrl, mimetype, uploadsDir)
         // .then((savedPath) => {
-        //   console.log('Media downloaded and saved successfully:', savedPath);
+        //   // console.log('Media downloaded and saved successfully:', savedPath);
         // })
         // .catch((error) => {
         //   console.error('Error downloading and saving media:', error);
@@ -506,12 +504,16 @@ const recieveMessages = async (req, res)=>{
       end.setHours(23,59,59,999);
 
       const recieverId = await Instance.findOne({instance_id: messageObject.instance_id})
-      console.log({recieverId})
+      const senderId = await Contact.findOne({number: remoteId, campaignId: recieverId.campaignId})
+      const tempCampaign = await Campaign.findOne({_id: recieverId.campaignId})
+
+      // console.log({recieverId})
 
       const newMessage = {
         recieverId : recieverId?._id,
         senderNumber: remoteId,
         instanceId: messageObject?.instance_id,
+        campaignId: tempCampaign?._id,
         fromMe: false,
         text: message,
         type: 'text'
@@ -532,17 +534,29 @@ const recieveMessages = async (req, res)=>{
         },
       ).sort({ updatedAt: -1 });
 
+      
+      if(message.toLowerCase()===tempCampaign.entryReportKeyword.toLowerCase() && senderId?.isAdmin){
+        
+        const fileName = await getReportdataByTime(start,end, messageObject?.instance_id, tempCampaign._id)
+        // const fileName = 'http://5.189.156.200:84/uploads/reports/Report-1716394369435.csv'
+        sendMessageObj.filename = fileName.split('/').pop();
+        sendMessageObj.media_url= process.env.IMAGE_URL+fileName;
+        sendMessageObj.type = 'media';
+        const response =  await sendMessageFunc({...sendMessageObj, message:'Download report'});
+        return res.send(true);
+      }
+
       let reply;
-      console.log('previousChatLog', previousChatLog)
+      // console.log('previousChatLog', previousChatLog)
 
       if(!previousChatLog){
         const campaignData = await Campaign.find({_id: recieverId.campaignId})
-        console.log({campaignData})
+        // console.log({campaignData})
         for (let campaign of campaignData){
           let contact;
           if(campaign.verifyNumberFirst){
-            contact = await Contact.findOne({number: remoteId})
-            console.log({contact})
+            contact = await Contact.findOne({number: remoteId, campaignId: recieverId.campaignId})
+            // console.log({contact})
             if(!contact) {
               reply = campaign.numberVerificationFails;
               const response = await sendMessageFunc({...sendMessageObj,message: reply });
@@ -550,7 +564,11 @@ const recieveMessages = async (req, res)=>{
             }
           }
           if(campaign.startingKeyword.toLowerCase() === message.toLowerCase()){
-            reply = campaign.numberVerificationPasses;
+            if(campaign.verifyUserCode){
+              reply = campaign.numberVerificationPasses;
+            }else{
+              reply = campaign.sequences[0].messageText;
+            }
 
             const currentTime = moment();
             // const startingTime = moment(campaign?.startDate);
@@ -569,32 +587,57 @@ const recieveMessages = async (req, res)=>{
             }
 
             const response = await sendMessageFunc({...sendMessageObj,message: reply });
-            const NewChatLog = await ChatLogs.findOneAndUpdate(
-              {
-                senderNumber: remoteId,
-                instanceId: messageObject?.instance_id,
-                updatedAt: { $gte: start, $lt: end },
-                campaignId : campaign._id,
-                messageTrack:  1
-              },
-              {
-                $set: {
-                  updatedAt: Date.now(),
-                  isValid: contact? true: false
+            
+            if(campaign.verifyUserCode){
+              const NewChatLog = await ChatLogs.findOneAndUpdate(
+                {
+                  senderNumber: remoteId,
+                  instanceId: messageObject?.instance_id,
+                  updatedAt: { $gte: start, $lt: end },
+                  campaignId : campaign._id,
+                  messageTrack:  1
+                },
+                {
+                  $set: {
+                    updatedAt: Date.now(),
+                    isValid: contact? true: false
+                  }
+                },
+                {
+                  upsert: true, // Create if not found, update if found
+                  new: true // Return the modified document rather than the original
                 }
-              },
-              {
-                upsert: true, // Create if not found, update if found
-                new: true // Return the modified document rather than the original
-              }
-            )
+              )
+            }else{
+              const NewChatLog = await ChatLogs.findOneAndUpdate(
+                {
+                  senderNumber: remoteId,
+                  instanceId: messageObject?.instance_id,
+                  updatedAt: { $gte: start, $lt: end },
+                  campaignId : campaign._id,
+                  messageTrack:  2,
+                  sequenceTrack: 1,
+                  otherMessages : {}
+                },
+                {
+                  $set: {
+                    updatedAt: Date.now(),
+                    isValid: contact? true: false
+                  }
+                },
+                {
+                  upsert: true, // Create if not found, update if found
+                  new: true // Return the modified document rather than the original
+                }
+              )
+            }
             return res.send('firstMessage sent')
           }
         }
         return res.send('No active campaign found')
       }
       const activeCampaign = await Campaign.findOne({_id: previousChatLog.campaignId})
-      console.log({activeCampaign})
+      // console.log({activeCampaign})
       const currentTime = moment();
       // const startingTime = moment(activeCampaign?.startDate);
       // const endingTime = moment(activeCampaign?.endDate);
@@ -607,14 +650,19 @@ const recieveMessages = async (req, res)=>{
       .set('hour', activeCampaign.endHour)
       .set('minute', activeCampaign.endMinute);
 
-      console.log({currentTime, startingTime, endingTime})
+      // console.log({currentTime, startingTime, endingTime})
       if (!currentTime.isBetween(startingTime, endingTime)) {
         const response =  await sendMessageFunc({...sendMessageObj,message: "Registrations are closed now 2" });
         return res.send(true);      
       }
 
+      // console.log(activeCampaign.startingKeyword.toLowerCase() , message.toLowerCase())
       if(activeCampaign.startingKeyword.toLowerCase() === message.toLowerCase()){
-        reply = activeCampaign.numberVerificationPasses;
+        if(activeCampaign.verifyNumberFirst){
+          reply = activeCampaign.numberVerificationPasses;
+        }else{
+          reply = activeCampaign.sequences[0].messageText;
+        }
         const response = await sendMessageFunc({...sendMessageObj,message: reply });
         return res.send('start msg sent')
       }
@@ -641,10 +689,8 @@ const recieveMessages = async (req, res)=>{
       }
 
       let resValue = 'start';
-      console.log('previousChatLog', previousChatLog)
-// || (previousChatLog?.senderCode && previousChatLog?.senderCode != message)
+      // console.log('previousChatLog', previousChatLog)
       if(previousChatLog.messageTrack === 1 && activeCampaign?.verifyUserCode){
-        console.log('I am here============')
         const { codeType, codeLength } = activeCampaign;
         let pattern;
         resValue += ' 1'
@@ -668,7 +714,7 @@ const recieveMessages = async (req, res)=>{
         }else{
           resValue += ' 2'
           const matchedContact = await Contact.findOne({code: message, number: remoteId})
-          console.log('matchedContact', matchedContact)
+          // console.log('matchedContact', matchedContact)
           if(!matchedContact){
             reply = activeCampaign.numberVerificationFails;
             const response = await sendMessageFunc({...sendMessageObj,message: reply });
@@ -712,31 +758,30 @@ const recieveMessages = async (req, res)=>{
         }
 
       }
-      console.log('aaaaaa', resValue);
       if((activeCampaign.verifyUserCode && previousChatLog.messageTrack >= 1) || !activeCampaign.verifyUserCode ){
-        // console.log({previousChatLog})
+        console.log({previousChatLog})
 
-        console.log('ppppppppp');
         const currentSequence = activeCampaign.sequences[previousChatLog.sequenceTrack];
+        console.log({currentSequence})
         if(!currentSequence){
           const reply = `Your response has been already been saved. Type "${activeCampaign.entryRewriteKeyword}" to change your entry.`
           const response =  await sendMessageFunc({...sendMessageObj,message: reply });
           return res.send('response saved')
         }
         const reply = currentSequence?.messageText;
-        // console.log('currentSequence', currentSequence);
+        // // console.log('currentSequence', currentSequence);
         previousChatLog['messageTrack']++;
         previousChatLog['sequenceTrack']++;
         previousChatLog['updatedAt']= Date.now();
-        // console.log('currentSequence', currentSequence);
-        // console.log('previousChatLog', previousChatLog);
+        // // console.log('currentSequence', currentSequence);
+        // // console.log('previousChatLog', previousChatLog);
         let resvalue = 'before';
         if(previousChatLog?.sequenceTrack>0){
-          // console.log({previousChatLog})
+          // // console.log({previousChatLog})
           resvalue += ' 1';
           const previousSequence = activeCampaign.sequences[previousChatLog.sequenceTrack-2]; 
-          console.log('previousSequence', previousSequence);
-          if(previousSequence?.type === 'options' && previousSequence.options.split(',').length < parseInt(message)||isNaN(message)){
+          // console.log('previousSequence', previousSequence);
+          if(previousSequence?.type === 'options' && (previousSequence.options.split(',').length < parseInt(message)||isNaN(message))){
             resvalue += ' 2';
             const response =  await sendMessageFunc({...sendMessageObj,message: 'Invalid Option' });
             return res.send('invalid option')
@@ -760,7 +805,7 @@ const recieveMessages = async (req, res)=>{
 
         }
 
-        console.log('saving chatlog', previousChatLog);
+        // // console.log('saving chatlog', previousChatLog);
         // return res.send('currentSequence previousChatLog')
         await previousChatLog.save();
 
@@ -768,7 +813,7 @@ const recieveMessages = async (req, res)=>{
         return res.send('first sequence message')
       }
 
-      console.log({activeCampaign})
+      // console.log({activeCampaign})
       return res.send('active22');
 
     }else{
@@ -782,7 +827,7 @@ const recieveMessages = async (req, res)=>{
 }
 
 const sendMessageFunc = async (message, data={})=>{
-  console.log(message)
+  console.log('kkk',message)
   const chatLog = await ChatLogs.findOne({
     senderNumber: message.number,
     instanceId: message.instance_id
@@ -805,6 +850,7 @@ const sendMessageFunc = async (message, data={})=>{
     ...message,
     senderNumber: message?.number,
     instanceId: message?.instance_id,
+    campaignId: contact.campaignId,
     fromMe: true,
     text: message?.message,
   }
@@ -815,9 +861,9 @@ const sendMessageFunc = async (message, data={})=>{
 }
 
 const reformText = (message, data)=>{
-  console.log(data)
+  // console.log({data})
   const {contact, chatLog} = data;
-  console.log(contact, chatLog)
+  // console.log(contact, chatLog)
   
   let mergedContact = {};
   
@@ -836,8 +882,8 @@ const reformText = (message, data)=>{
       }
     });
   }
-  console.log(message)
-  console.log(mergedContact)
+  // console.log(message)
+  // console.log(mergedContact)
   function replacePlaceholders(message, data) {
     return message.replace(/{(\w+)}/g, (_, key) => data[key] || `{${key}}`);
   }
@@ -848,7 +894,7 @@ const reformText = (message, data)=>{
 
 function processUserMessage(message, setConfig) {
   // Iterate through setData array to find matching keywords
-  // console.log(setConfig.setData)
+  // // console.log(setConfig.setData)
   if (!message) {
     return null;
   }
@@ -989,7 +1035,7 @@ const formatDate = (date) => {
   }
 };
 
-async function getReportdataByTime(startDate, endDate, id){
+async function getReportdataByTime(startDate, endDate, id, campaignId){
 
   let dateFilter = {};
   if (startDate && endDate) { // If both startDate and endDate are defined, add a date range filter
@@ -1003,16 +1049,23 @@ async function getReportdataByTime(startDate, endDate, id){
 
   let query = [
     {
+      $match: {
+        campaignId: campaignId.toString() // Ensure only contacts with the matching campaignId are fetched
+      }
+    },
+    {
       $lookup: {
         from: 'chatlogs',
-        let: { contactITS: '$ITS' },
+        let: { campaignIdVar: campaignId.toString(), instanceIdVar: id },
         pipeline: [
           {
             $match: {
               $expr: {
                 $and: [
-                  { $eq: ['$requestedITS', '$$contactITS'] },
-                  { $eq: ['$instance_id', id] },
+                  { $eq: ['$campaignId', '$$campaignIdVar'] },
+                  { $eq: ['$instanceId', '$$instanceIdVar'] },
+                  { $gte: ['$updatedAt', startDate] },
+                  { $lt: ['$updatedAt', endDate] }
                 ]
               }
             }
@@ -1030,13 +1083,12 @@ async function getReportdataByTime(startDate, endDate, id){
     {
       $project: {
         _id: 0,
-        ITS: '$ITS',
+        Code: '$code',
         Name: '$name',
         PhoneNumber: 1,
         updatedAt: '$chatlog.updatedAt',
         Status: '$chatlog.messageTrack',
-        Venue: '$chatlog.otherMessages.venue',
-        Response: '$chatlog.otherMessages.profile'
+        otherMessages: '$chatlog.otherMessages'
       }
     }
   ];
@@ -1059,15 +1111,35 @@ async function getReportdataByTime(startDate, endDate, id){
     };
 
     let data = await Contact.aggregate(query);
-    data = data.map(ele=>({
-      Name: ele.Name,
-      PhoneNumber: ele.PhoneNumber,
-      ITS: ele.ITS,
-      'Updated At': formatDate(ele.updatedAt),
-      Venue: getNames('venue', ele?.Venue),
-      Status: ele.Status,
-      Response: getNames('profile', ele?.Response),
-    }))
+
+    let headers = new Set();
+    data.forEach(ele => {
+      if (ele.otherMessages) {
+        Object.keys(ele.otherMessages).forEach(key => {
+          headers.add(key); // Collect all unique headers from `otherMessages`
+        });
+      }
+    });
+
+    headers = Array.from(headers);
+
+
+    data = data.map(ele => {
+      let row = {
+        Name: ele.Name,
+        PhoneNumber: ele.PhoneNumber,
+        Code: ele.code||'N/A',
+        'Updated At': formatDate(ele.updatedAt),
+        Status: ele.Status,
+      };
+
+      // Populate dynamic otherMessages fields
+      headers.forEach(header => {
+        row[header] = ele.otherMessages?.[header]?.name || ele.otherMessages?.[header]?.value || ''; // Use header as key and add the corresponding value
+      });
+
+      return row;
+    });
 
     const fileName = `Report-${Date.now()}.xlsx`
     const filePath = `uploads/reports/${fileName}`;
@@ -1076,7 +1148,7 @@ async function getReportdataByTime(startDate, endDate, id){
     xlsx.utils.book_append_sheet(wb, ws, 'Report');
     xlsx.writeFile(wb, filePath);
   
-    console.log(`XLSX file created successfully at ${filePath}`);
+    // console.log(`XLSX file created successfully at ${filePath}`);
     
     return filePath;
 
@@ -1086,8 +1158,8 @@ async function getReportdataByTime(startDate, endDate, id){
 };
 
 async function createPDF(data, filePath) {
-  console.log('data',data)
-  console.log('filepath',filePath)
+  // console.log('data',data)
+  // console.log('filepath',filePath)
  
   const templateSource = fs.readFileSync(`${process.cwd()}/uploads/reports/template.hbs`, 'utf8');
   const template = handlebars.compile(templateSource);
@@ -1112,7 +1184,7 @@ async function createPDF(data, filePath) {
         console.error(err);
         return reject(err);
       }
-      console.log('PDF created successfully');
+      // console.log('PDF created successfully');
       resolve(res);
     });
   });
@@ -1199,7 +1271,7 @@ async function getReportdataByTime1(startDate, endDate, id){
 function isTimeInRange(startTime, endTime, timezoneOffset = 0) {
   // Get the current date/time in UTC
   const nowUtc = new Date();
-  console.log({startTime, endTime})
+  // console.log({startTime, endTime})
   // Convert it to the target timezone
   const now = new Date(nowUtc.getTime() + timezoneOffset * 60 * 60 * 1000);
 
@@ -1213,7 +1285,7 @@ function isTimeInRange(startTime, endTime, timezoneOffset = 0) {
   end.setUTCDate(nowUtc.getUTCDate());
   end.setUTCMonth(nowUtc.getUTCMonth());
   end.setUTCFullYear(nowUtc.getUTCFullYear());
-  console.log(now,start,end)
+  // console.log(now,start,end)
   // Check if the current time falls within the start and end times
   return now >= start && now <= end;
 }
@@ -1271,10 +1343,10 @@ async function getStats(instanceId, startDate, endDate ){
 
   const totalContacts = await Contact.countDocuments();
   const totalUnresponsiveContacts = totalContacts - contactsWithChatlogs.length;
-  console.log(totalEntries,
-    totalCompletedResponses,
-    totalIncompleteResponses,
-    totalUnresponsiveContacts)
+  // console.log(totalEntries,
+    // totalCompletedResponses,
+    // totalIncompleteResponses,
+    // totalUnresponsiveContacts)
   return {
     totalEntries,
     totalCompletedResponses,
@@ -1366,11 +1438,11 @@ async function getStats1(instanceId, startDate, endDate) {
     const totalIncompleteResponses = chatLogsStats.totalIncompleteResponses[0] ? chatLogsStats.totalIncompleteResponses[0].count : 0;
     const totalUnresponsiveContacts = totalContacts - uniqueContacts.length;
 
-    console.log(
-      totalContacts, 
-      totalCompletedResponses,
-      totalIncompleteResponses,
-      totalUnresponsiveContacts)
+    // console.log(
+      // totalContacts, 
+      // totalCompletedResponses,
+      // totalIncompleteResponses,
+      // totalUnresponsiveContacts)
 
     return {
       totalContacts,

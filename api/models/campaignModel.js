@@ -23,7 +23,7 @@ const campaignSchema = new mongoose.Schema({
   numberVerificationPasses: { type: String, default: '' },
   numberVerificationFails: { type: String, default: '' },
   verifyUserCode: { type: Boolean, default: false },
-  codeType: { type: String, enum: ['Alphabets', 'Alphanumerical', 'Numbers'] },
+  codeType: { type: String, required: false },
   codeLength: { type: Number},
   codeVerificationFails: { type: String, default: '' },
   sequences: [sequenceSchema],
