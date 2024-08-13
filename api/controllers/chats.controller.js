@@ -658,9 +658,54 @@ const recieveMessages = async (req, res)=>{
 
       // console.log(activeCampaign.startingKeyword.toLowerCase() , message.toLowerCase())
       if(activeCampaign.startingKeyword.toLowerCase() === message.toLowerCase()){
-        if(activeCampaign.verifyNumberFirst){
+        if(previousChatLog.sequenceTrack === activeCampaign.sequences.length){
+          const reply = `Your response has been already been saved . Type *${activeCampaign.entryRewriteKeyword}* to change your entry`;
+          const response = await sendMessageFunc({...sendMessageObj,message: reply });
+          return res.send('start msg sent')
+        }
+        if(activeCampaign.verifyUserCode){
           reply = activeCampaign.numberVerificationPasses;
+          const NewChatLog = await ChatLogs.findOneAndUpdate(
+            {
+              senderNumber: remoteId,
+              instanceId: messageObject?.instance_id,
+              updatedAt: { $gte: start, $lt: end },
+              campaignId : activeCampaign._id,
+              messageTrack:  1
+            },
+            {
+              $set: {
+                updatedAt: Date.now(),
+                isValid: senderId? true: false
+              }
+            },
+            {
+              upsert: true, // Create if not found, update if found
+              new: true // Return the modified document rather than the original
+            }
+          )
         }else{
+          const NewChatLog = await ChatLogs.findOneAndUpdate(
+            {
+              senderNumber: remoteId,
+              instanceId: messageObject?.instance_id,
+              updatedAt: { $gte: start, $lt: end },
+              campaignId : activeCampaign._id,
+              messageTrack:  2,
+              sequenceTrack: 1,
+              otherMessages : {}
+            },
+            {
+              $set: {
+                updatedAt: Date.now(),
+                isValid: senderId? true: false
+              }
+            },
+            {
+              upsert: true, // Create if not found, update if found
+              new: true // Return the modified document rather than the original
+            }
+          )
           reply = activeCampaign.sequences[0].messageText;
         }
         const response = await sendMessageFunc({...sendMessageObj,message: reply });
@@ -683,6 +728,7 @@ const recieveMessages = async (req, res)=>{
         await previousChatLog.save()
         const currentSequence = activeCampaign.sequences[0];
         const reply = currentSequence.messageText;
+        console.log('reply',reply)
         const response =  await sendMessageFunc({...sendMessageObj,message: reply });
         return res.send('after change message')
 
@@ -850,7 +896,7 @@ const sendMessageFunc = async (message, data={})=>{
     ...message,
     senderNumber: message?.number,
     instanceId: message?.instance_id,
-    campaignId: contact.campaignId,
+    campaignId: contact?.campaignId,
     fromMe: true,
     text: message?.message,
   }
