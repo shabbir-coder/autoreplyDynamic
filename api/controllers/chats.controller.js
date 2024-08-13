@@ -20,11 +20,16 @@ const saveContact = async(req, res)=>{
     try {
       const {name , code, number, instanceId, campaignId} = req.body
       const existingContact = await Contact.findOne({
-        $or: [
-          { name },
-          { code }
+        $and: [
+        { campaignId },  // Match the campaignId
+        {
+          $or: [
+          { name },   // Match the name
+          { number }  // Or match the number
           ]
-        });
+        }
+        ]
+      });
   
         if (existingContact) {
           let errorMessage = 'Contact already exists with the same ';
